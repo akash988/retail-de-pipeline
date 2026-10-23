@@ -20,3 +20,5 @@ CITIES = {
 WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
 WEATHER_DAILY = "temperature_2m_max,temperature_2m_min,precipitation_sum"
 TIMEZONE = "Asia/Kolkata"
+SERVING_DB = LAKE / "serving" / "retail.duckdb"
+SQL_DIR = ROOT / "sql"
