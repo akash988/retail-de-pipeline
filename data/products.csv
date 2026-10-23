@@ -1,0 +1,21 @@
+product_id,product_name,category,unit_price
+1,Product 1,Electronics,1934.25
+2,Product 2,Electronics,4757.5
+3,Product 3,Home,3685.77
+4,Product 4,Fashion,3032.43
+5,Product 5,Fashion,863.49
+6,Product 6,Fashion,863.37
+7,Product 7,Electronics,383.61
+8,Product 8,Electronics,4343.26
+9,Product 9,Grocery,3044.46
+10,Product 10,Electronics,3568.56
+11,Product 11,Electronics,199.86
+12,Product 12,Electronics,4851.56
+13,Product 13,Fashion,4177.97
+14,Product 14,Fashion,1139.46
+15,Product 15,Electronics,989.94
+16,Product 16,Fashion,997.68
+17,Product 17,Grocery,1589.79
+18,Product 18,Fashion,2670.31
+19,Product 19,Grocery,2215.53
+20,Product 20,Home,1526.02
