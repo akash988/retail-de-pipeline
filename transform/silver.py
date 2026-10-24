@@ -13,6 +13,8 @@ import pandas as pd
 from ingestion import config
 
 log = logging.getLogger("silver")
+WEATHER_COLS = ["city", "weather_date", "temp_max_c", "temp_min_c",
+                "precipitation_mm", "ingest_date"]
 
 ORDERS_SQL = """
 SELECT
@@ -96,12 +98,11 @@ def build_weather(con, bronze: Path, silver: Path) -> int:
                 "precipitation_mm": d["precipitation_sum"][i],
                 "ingest_date": ingest_date,
             })
-        if not rows:
-            log.warning("No weather files in bronze; writing empty weather table")
-            rows = [{"city": "none", "weather_date": "1970-01-01", "temp_max_c": None,
-                 "temp_min_c": None, "precipitation_mm": None, "ingest_date": "1970-01-01"}]
+      
 
-    con.register("weather_raw", pd.DataFrame(rows))
+    con.register("weather_raw", pd.DataFrame(rows, columns=WEATHER_COLS))
+    if not rows:
+        log.warning("No weather files in bronze; writing an empty weather table")
     out = silver / "weather"
     if out.exists():
         shutil.rmtree(out)

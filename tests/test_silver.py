@@ -1,7 +1,6 @@
 import duckdb
 
-from transform.silver import build_orders
-
+from transform.silver import build_orders, build_weather
 
 def test_orders_are_cleaned_and_deduplicated(tmp_path):
     bronze, silver = tmp_path / "bronze", tmp_path / "silver"
@@ -23,3 +22,8 @@ def test_orders_are_cleaned_and_deduplicated(tmp_path):
         f"FROM read_parquet('{path}/**/*.parquet', hive_partitioning=true) ORDER BY order_id"
     ).fetchall()
     assert rows == [("A1", "Mumbai", "UPI"), ("A2", "Unknown", "Card")]
+
+def test_weather_with_no_files_gives_empty_table(tmp_path):
+    (tmp_path / "bronze" / "weather").mkdir(parents=True)
+    con = duckdb.connect()
+    assert build_weather(con, tmp_path / "bronze", tmp_path / "silver") == 0
