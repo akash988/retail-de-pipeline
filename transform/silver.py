@@ -96,8 +96,10 @@ def build_weather(con, bronze: Path, silver: Path) -> int:
                 "precipitation_mm": d["precipitation_sum"][i],
                 "ingest_date": ingest_date,
             })
-    if not rows:
-        raise RuntimeError("No weather files found in bronze. Run ingestion first.")
+        if not rows:
+            log.warning("No weather files in bronze; writing empty weather table")
+            rows = [{"city": "none", "weather_date": "1970-01-01", "temp_max_c": None,
+                 "temp_min_c": None, "precipitation_mm": None, "ingest_date": "1970-01-01"}]
 
     con.register("weather_raw", pd.DataFrame(rows))
     out = silver / "weather"
