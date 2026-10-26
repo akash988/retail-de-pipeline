@@ -64,7 +64,7 @@ python -m pytest -q                      # run the tests
 - **Transactional warehouse load** with row-count reconciliation
 - **Tests and CI**: unit tests plus a full offline pipeline run on every push
 - **Observability**: per-step log files and a `pipeline_runs` table
-
+- **Incremental loads**: silver keeps a state file (watermark plus a content hash per bronze partition) and only reprocesses new or changed days. Late or corrected files are detected by hash. A `--full-refresh` flag rebuilds everything.
 ## Design decisions and trade-offs
 
 - **DuckDB instead of a cloud warehouse**: zero cost and no setup, and the SQL ports easily to Azure SQL or Synapse

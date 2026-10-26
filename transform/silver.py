@@ -6,6 +6,8 @@ import json
 import logging
 import shutil
 from pathlib import Path
+import argparse
+from transform.state import file_hash, load_state, save_state
 
 import duckdb
 import pandas as pd
@@ -60,7 +62,66 @@ def build_orders(con, bronze: Path, silver: Path) -> tuple[int, int]:
     ).fetchall()[0][0]
     log.info("Orders: %d raw rows -> %d clean rows (%d removed)", raw, clean, raw - clean)
     return raw, clean
+def build_orders_incremental(con, bronze: Path, silver: Path, state_file: Path) -> dict:
+    """Process only bronze order partitions that are new or whose content changed."""
+    state = load_state(state_file)
+    done = state.setdefault("silver_orders", {})
+    out = silver / "orders"
+    out.mkdir(parents=True, exist_ok=True)
 
+    files = sorted((bronze / "orders").glob("order_date=*/orders.csv"))
+    todo = []
+    for f in files:
+        day = f.parent.name.split("=")[1]
+        digest = file_hash(f)
+        if done.get(day) != digest:          # new day, or an existing day that changed
+            todo.append((day, f, digest))
+
+    raw_total = clean_total = 0
+    for day, f, digest in todo:
+        raw = con.execute(
+            f"SELECT count(*) FROM read_csv('{f.as_posix()}', header=true, all_varchar=true)"
+        ).fetchall()[0][0]
+
+        tmp = silver / "_tmp_orders"
+        if tmp.exists():
+            shutil.rmtree(tmp)
+        con.execute(
+            f"COPY ({ORDERS_SQL.format(glob=f.as_posix())}) TO '{tmp.as_posix()}' "
+            f"(FORMAT PARQUET, PARTITION_BY (order_date))"
+        )
+
+        clean = 0
+        if tmp.exists() and any(tmp.rglob("*.parquet")):
+            clean = con.execute(
+                f"SELECT count(*) FROM read_parquet('{tmp.as_posix()}/**/*.parquet', hive_partitioning=true)"
+            ).fetchall()[0][0]
+
+        # swap the new version of this day's partition into place
+        stale = out / f"order_date={day}"
+        if stale.exists():
+            shutil.rmtree(stale)
+        if tmp.exists():
+            for part in tmp.glob("order_date=*"):
+                target = out / part.name
+                if target.exists():
+                    shutil.rmtree(target)
+                shutil.move(str(part), str(target))
+            shutil.rmtree(tmp)
+
+        # record progress after every day, so a crash can resume where it stopped
+        done[day] = digest
+        state["watermark"] = max(state.get("watermark", ""), day)
+        save_state(state_file, state)
+
+        raw_total += raw
+        clean_total += clean
+        log.info("Orders %s: %d raw rows -> %d clean rows", day, raw, clean)
+
+    log.info("Silver orders: %d partitions processed, %d unchanged and skipped (watermark %s)",
+             len(todo), len(files) - len(todo), state.get("watermark", "none"))
+    return {"days_processed": len(todo), "days_skipped": len(files) - len(todo),
+            "raw": raw_total, "clean": clean_total}
 
 def build_products(con, bronze: Path, silver: Path) -> int:
     src = (bronze / "products" / "products.csv").as_posix()
@@ -150,6 +211,11 @@ def run_checks(con, silver: Path) -> bool:
 
 
 def main() -> None:
+    p = argparse.ArgumentParser()
+    p.add_argument("--full-refresh", action="store_true",
+                   help="clear silver orders and saved state, then reprocess every partition")
+    a = p.parse_args()
+
     config.LOG_DIR.mkdir(exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,
@@ -158,13 +224,19 @@ def main() -> None:
     )
     log.info("=== Silver build started ===")
     con = duckdb.connect()
-    build_orders(con, config.BRONZE, config.SILVER)
+
+    if a.full_refresh:
+        log.info("Full refresh requested: clearing silver orders and saved state")
+        shutil.rmtree(config.SILVER / "orders", ignore_errors=True)
+        st = load_state(config.STATE_FILE)
+        st.pop("silver_orders", None)
+        save_state(config.STATE_FILE, st)
+
+    build_orders_incremental(con, config.BRONZE, config.SILVER, config.STATE_FILE)
     build_products(con, config.BRONZE, config.SILVER)
     build_weather(con, config.BRONZE, config.SILVER)
     if not run_checks(con, config.SILVER):
         raise SystemExit("Silver quality checks failed")
     log.info("=== Silver build finished ===")
-
-
 if __name__ == "__main__":
     main()
