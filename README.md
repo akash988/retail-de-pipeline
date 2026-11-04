@@ -92,3 +92,29 @@ pipeline/         orchestrator
 dashboard/        Streamlit app
 tests/            pytest suite
 ```
+
+## Databricks lakehouse (Free Edition)
+
+The pipeline is also rebuilt on **Databricks** with **PySpark and Delta Lake** (Unity Catalog: `bronze`, `silver`, `gold` schemas), using the free, non-commercial Free Edition. The DuckDB version produces the same results, and I reconciled order counts and revenue between the two.
+
+| Notebook | What it does |
+|---|---|
+| `01_bronze_silver_orders` | Raw orders into Delta, then typed, cleaned, deduplicated silver; invalid rows go to a quarantine table with a reason |
+| `02_weather_gold` | Flattens weather JSON, builds the star schema and daily sales summary, runs reconciliation checks |
+| `02b_merge_demo` | Delta `MERGE` upsert and `RESTORE` with time travel |
+| `03_cdc_scd2` | Simulated CDC feed (insert, update, delete) with an SCD Type 2 customer dimension |
+| `04_validate_and_audit` | Cross-layer reconciliation and an audit table of every run |
+| `05_autoloader_demo` | Incremental file ingestion with Auto Loader and checkpoints |
+
+**CDC handling:** events are validated and deduplicated, the latest event per customer wins within a batch, stale events are quarantined, deletes close the current version, name corrections use SCD Type 1 and city or loyalty tier changes use SCD Type 2, applied with one atomic Delta `MERGE`. A batch log makes each batch idempotent.
+
+**Orchestration:** a 5-task Databricks Job (`bronze_silver_orders` then `weather_gold` then `cdc_scd2` then `audit_success`, plus an `audit_failure` task that runs only if something failed). Tasks retry once, the schedule is daily at 07:00 IST (paused on the free tier), and every run is recorded in `gold.pipeline_audit`.
+
+![Databricks job run](docs/databricks_job_graph.png)
+![Audit table](docs/databricks_audit_table.png)
+![SCD2 history](docs/databricks_scd2_history.png)
+![Quarantine table](docs/databricks_quarantine.png)
+
+### Lessons from running it
+- A scheduled run failed after about a week because a time-travel demo read version 0 of a Delta table, which was older than the 7-day deleted-file retention. I changed it to compare with the previous version, and the failure was captured in the audit table.
+- Free Edition limits: serverless compute only, a daily compute quota, restricted internet access, and non-commercial use.
