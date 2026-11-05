@@ -1,0 +1,71 @@
+{
+    "name": "pl_ingest_orders",
+    "properties": {
+        "activities": [
+            {
+                "name": "copy_orders_day",
+                "type": "Copy",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "BinarySource",
+                        "storeSettings": {
+                            "type": "HttpReadSettings",
+                            "requestMethod": "GET"
+                        },
+                        "formatSettings": {
+                            "type": "BinaryReadSettings"
+                        }
+                    },
+                    "sink": {
+                        "type": "BinarySink",
+                        "storeSettings": {
+                            "type": "AzureBlobFSWriteSettings"
+                        }
+                    },
+                    "enableStaging": false,
+                    "dataIntegrationUnits": 4
+                },
+                "inputs": [
+                    {
+                        "referenceName": "ds_http_binary",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "relPath": "@concat(pipeline().parameters.githubUser, '/retail-de-pipeline/main/data/orders/orders_', pipeline().parameters.runDate, '.csv')"
+                        }
+                    }
+                ],
+                "outputs": [
+                    {
+                        "referenceName": "ds_adls_binary",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "container": "bronze",
+                            "folder": "@concat('orders/order_date=', pipeline().parameters.runDate)",
+                            "file": "orders.csv"
+                        }
+                    }
+                ]
+            }
+        ],
+        "parameters": {
+            "runDate": {
+                "type": "string",
+                "defaultValue": "2026-10-22"
+            },
+            "githubUser": {
+                "type": "string",
+                "defaultValue": "akash988"
+            }
+        },
+        "annotations": []
+    }
+}

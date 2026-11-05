@@ -1,0 +1,22 @@
+{
+    "name": "ds_http_binary",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "ls_github_http",
+            "type": "LinkedServiceReference"
+        },
+        "parameters": {
+            "relPath": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "type": "Binary",
+        "typeProperties": {
+            "location": {
+                "type": "HttpServerLocation",
+                "relativeUrl": "@dataset().relPath"
+            }
+        }
+    }
+}
