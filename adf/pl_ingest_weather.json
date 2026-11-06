@@ -1,0 +1,121 @@
+{
+    "name": "pl_ingest_weather",
+    "properties": {
+        "activities": [
+            {
+                "name": "foreach_city",
+                "type": "ForEach",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@pipeline().parameters.cities",
+                        "type": "Expression"
+                    },
+                    "batchCount": 5,
+                    "activities": [
+                        {
+                            "name": "copy_weather_city",
+                            "type": "Copy",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "BinarySource",
+                                    "storeSettings": {
+                                        "type": "HttpReadSettings",
+                                        "requestMethod": "GET",
+                                        "additionalHeaders": "Accept-Encoding: identity",
+                                        "requestTimeout": ""
+                                    },
+                                    "formatSettings": {
+                                        "type": "BinaryReadSettings"
+                                    }
+                                },
+                                "sink": {
+                                    "type": "BinarySink",
+                                    "storeSettings": {
+                                        "type": "AzureBlobFSWriteSettings"
+                                    }
+                                },
+                                "enableStaging": false
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "ds_http_openmeteo_binary",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "relPath": "@concat('v1/forecast?latitude=', string(item().lat), '&longitude=', string(item().lon), '&start_date=', pipeline().parameters.startDate, '&end_date=', pipeline().parameters.endDate, '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Asia%2FKolkata')"
+                                    }
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "ds_adls_binary",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "container": "bronze",
+                                        "folder": "@concat('weather/ingest_date=', pipeline().parameters.runDate)",
+                                        "file": "@concat('city=', item().city, '.json')"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        ],
+        "parameters": {
+            "startDate": {
+                "type": "string",
+                "defaultValue": "2026-09-23"
+            },
+            "endDate": {
+                "type": "string",
+                "defaultValue": "2026-10-22"
+            },
+            "runDate": {
+                "type": "string",
+                "defaultValue": "2026-11-06"
+            },
+            "cities": {
+                "type": "array",
+                "defaultValue": [
+                    {
+                        "city": "Mumbai",
+                        "lat": 19.076,
+                        "lon": 72.8777
+                    },
+                    {
+                        "city": "Delhi",
+                        "lat": 28.6139,
+                        "lon": 77.209
+                    },
+                    {
+                        "city": "Bengaluru",
+                        "lat": 12.9716,
+                        "lon": 77.5946
+                    },
+                    {
+                        "city": "Chennai",
+                        "lat": 13.0827,
+                        "lon": 80.2707
+                    },
+                    {
+                        "city": "Kolkata",
+                        "lat": 22.5726,
+                        "lon": 88.3639
+                    }
+                ]
+            }
+        },
+        "annotations": []
+    }
+}

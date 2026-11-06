@@ -1,0 +1,61 @@
+{
+    "name": "pl_backfill_orders",
+    "properties": {
+        "activities": [
+            {
+                "name": "foreach_date",
+                "type": "ForEach",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@pipeline().parameters.dates",
+                        "type": "Expression"
+                    },
+                    "isSequential": false,
+                    "activities": [
+                        {
+                            "name": "run_ingest_orders",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "policy": {
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "pl_ingest_orders",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true,
+                                "parameters": {
+                                    "runDate": "@item()",
+                                    "githubUser": "@pipeline().parameters.githubUser"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "parameters": {
+            "githubUser": {
+                "type": "string",
+                "defaultValue": "akash988"
+            },
+            "dates": {
+                "type": "array",
+                "defaultValue": [
+                    "2026-10-16",
+                    "2026-10-17",
+                    "2026-10-18",
+                    "2026-10-19",
+                    "2026-10-20",
+                    "2026-10-21",
+                    "2026-10-22"
+                ]
+            }
+        },
+        "annotations": []
+    }
+}
