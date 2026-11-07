@@ -13,3 +13,8 @@
 - pl_ingest_weather: ForEach over 5 cities, REST (Open-Meteo) to bronze/weather/ingest_date=.../city=<name>.json
   (needed an Accept-Encoding: identity header because the REST connector failed to decode the compressed response)
 - pl_backfill_orders: ForEach over 7 dates, Execute Pipeline reusing pl_ingest_orders
+
+- Data flow: ADF ingests orders and weather to ADLS bronze; local DuckDB pipeline produces gold; gold is exported
+  as typed Parquet to ADLS gold; ADF pipeline pl_load_gold_to_sql truncates and loads the Azure SQL gold schema
+- Secrets: SQL password read from Key Vault by ADF through its managed identity (Key Vault Secrets User)
+- Reconciliation: row counts and total revenue in Azure SQL equal the local warehouse

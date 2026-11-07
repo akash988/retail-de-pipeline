@@ -1,0 +1,99 @@
+{
+    "name": "pl_load_gold_to_sql",
+    "properties": {
+        "activities": [
+            {
+                "name": "foreach_table",
+                "type": "ForEach",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@pipeline().parameters.tables",
+                        "type": "Expression"
+                    },
+                    "isSequential": true,
+                    "activities": [
+                        {
+                            "name": "copy_table_to_sql",
+                            "type": "Copy",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "ParquetSource",
+                                    "storeSettings": {
+                                        "type": "AzureBlobFSReadSettings",
+                                        "recursive": true,
+                                        "enablePartitionDiscovery": false
+                                    },
+                                    "formatSettings": {
+                                        "type": "ParquetReadSettings"
+                                    }
+                                },
+                                "sink": {
+                                    "type": "AzureSqlSink",
+                                    "preCopyScript": "@concat('TRUNCATE TABLE gold.', item())",
+                                    "writeBehavior": "insert",
+                                    "sqlWriterUseTableLock": false,
+                                    "disableMetricsCollection": false
+                                },
+                                "enableStaging": false,
+                                "translator": {
+                                    "type": "TabularTranslator",
+                                    "typeConversion": true,
+                                    "typeConversionSettings": {
+                                        "allowDataTruncation": true,
+                                        "treatBooleanAsNumber": false
+                                    }
+                                }
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "ds_adls_parquet",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "container": "gold",
+                                        "folder": "@item()",
+                                        "file": "@concat(item(), '.parquet')"
+                                    }
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "ds_azuresql_table",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "schemaName": "gold",
+                                        "tableName": "@item()"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        ],
+        "parameters": {
+            "tables": {
+                "type": "array",
+                "defaultValue": [
+                    "dim_date",
+                    "dim_city",
+                    "dim_product",
+                    "dim_customer",
+                    "fact_orders",
+                    "daily_sales_summary"
+                ]
+            }
+        },
+        "annotations": []
+    }
+}

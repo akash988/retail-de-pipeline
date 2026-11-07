@@ -1,0 +1,23 @@
+{
+    "name": "ls_azuresql",
+    "properties": {
+        "annotations": [],
+        "type": "AzureSqlDatabase",
+        "typeProperties": {
+            "server": "sql-retail-de-akshay123.database.windows.net",
+            "database": "free-sql-db-0304710",
+            "encrypt": "mandatory",
+            "trustServerCertificate": false,
+            "authenticationType": "SQL",
+            "userName": "retailadmin",
+            "password": {
+                "type": "AzureKeyVaultSecret",
+                "store": {
+                    "referenceName": "ls_keyvault",
+                    "type": "LinkedServiceReference"
+                },
+                "secretName": "sql-admin-password"
+            }
+        }
+    }
+}
