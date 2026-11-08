@@ -28,12 +28,13 @@ jobs:
       - name: Run full pipeline (offline)
         run: python -m pipeline.run_pipeline --skip-weather
 
-    bicep-check:
-      runs-on: ubuntu-latest
-      steps:
-       - uses: actions/checkout@v4
-       - name: Build and lint Bicep (no Azure login needed)
-         run: |
-           az bicep install
-           az bicep build --file infra/main.bicep --stdout > /dev/null
-           az bicep lint --file infra/main.bicep
+  bicep-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and lint Bicep (no Azure login needed)
+        run: |
+          az bicep install
+          az bicep build --file infra/main.bicep --stdout > /dev/null
+          az bicep lint --file infra/main.bicep
