@@ -18,3 +18,12 @@
   as typed Parquet to ADLS gold; ADF pipeline pl_load_gold_to_sql truncates and loads the Azure SQL gold schema
 - Secrets: SQL password read from Key Vault by ADF through its managed identity (Key Vault Secrets User)
 - Reconciliation: row counts and total revenue in Azure SQL equal the local warehouse
+
+## Infrastructure as code
+- infra/main.bicep recreates: ADLS Gen2 (bronze, silver, gold), Key Vault (RBAC), Azure SQL server and
+  free-offer database (auto-pause on exhaustion), Data Factory with a managed identity, and role assignments
+- Data Factory pipelines are stored as JSON in /adf (not deployed by Bicep)
+- Checked with az bicep build and lint, a what-if against the live group, and a test deployment into a
+  temporary resource group (5 resources, 3 containers, free SQL database with auto-pause), then deleted
+- The SQL password is a secure parameter supplied at deploy time; it is never stored in the repo
+- A wrong built-in role ID failed the first test deployment; IDs are now verified with `az role definition list`

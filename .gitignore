@@ -7,3 +7,4 @@ __pycache__/
 lake/
 logs/
 databricks_upload/
+infra/existing.parameters.json
