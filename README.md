@@ -1,4 +1,4 @@
-# Retail Sales and Weather Analytics Pipeline
+﻿# Retail Sales and Weather Analytics Pipeline
 
 ![CI](https://github.com/akash988/retail-de-pipeline/actions/workflows/ci.yml/badge.svg)
 
@@ -110,11 +110,8 @@ The pipeline is also rebuilt on **Databricks** with **PySpark and Delta Lake** (
 
 **Orchestration:** a 5-task Databricks Job (`bronze_silver_orders` then `weather_gold` then `cdc_scd2` then `audit_success`, plus an `audit_failure` task that runs only if something failed). Tasks retry once, the schedule is daily at 07:00 IST (paused on the free tier), and every run is recorded in `gold.pipeline_audit`.
 
-![Databricks job run](docs/databricks_job_graph.png)
-![Audit table](docs/databricks_audit_table.png)
-![SCD2 history](docs/databricks_scd2_history.png)
-![Quarantine table](docs/databricks_quarantine.png)
 
 ### Lessons from running it
 - A scheduled run failed after about a week because a time-travel demo read version 0 of a Delta table, which was older than the 7-day deleted-file retention. I changed it to compare with the previous version, and the failure was captured in the audit table.
 - Free Edition limits: serverless compute only, a daily compute quota, restricted internet access, and non-commercial use.
+The Azure free-trial credit ended and the subscription was disabled, so these resources were deleted. `infra/main.bicep`, `adf/` and `sql/` rebuild the environment.
